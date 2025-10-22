@@ -53,12 +53,9 @@ const useConverter = ({setIsLoading}: useConverterProps) => {
     const extractTrackId = useCallback(async (url: string) => {
         if (url.includes("spotify.link")) {
             try {
-                const res = await fetch(
-                    `${
-                        import.meta.env.VITE_BACKEND_ENDPOINT
-                    }/api/spotify/resolve?url=${encodeURIComponent(url)}`
-                );
+                const res = await fetch(`${import.meta.env.VITE_BACKEND_ENDPOINT}/api/spotify/resolve?url=${encodeURIComponent(url)}`);
                 const data = await res.json();
+
                 if (data.resolvedUrl) {
                     url = data.resolvedUrl;
                 }
@@ -173,6 +170,7 @@ const useConverter = ({setIsLoading}: useConverterProps) => {
         switch (platform) {
             case "spotify": {
                 const trackId = await extractTrackId(inputUrl);
+
                 if (!trackId) {
                     setStatus({
                         message: "Invalid Spotify URL",
