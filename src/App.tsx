@@ -5,10 +5,15 @@ import appleMusicIcon from "./assets/apple-music.svg";
 import { Slide, ToastContainer } from "react-toastify";
 import Lottie from "lottie-react";
 import arrowLottie from "./assets/arrow.json";
+import { useState } from "react";
+import Loader from "./components/Loader";
 
 function App() {
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+
     return (
         <>
+            {isLoading && <Loader />}
             <div className="titleContainer">
                 <div className="icons">
                     <Lottie
@@ -37,10 +42,11 @@ function App() {
                 </div>
             </div>
             <p>
-                Paste a Spotify or Apple Music song — we’ll find its twin link ✨
+                Paste a Spotify or Apple Music song <br/>
+                We’ll find its twin link ✨
             </p>
 
-            <Converter />
+            <Converter setIsLoading={setIsLoading}/>
             <ToastContainer
                 position="top-center"
                 autoClose={1000}

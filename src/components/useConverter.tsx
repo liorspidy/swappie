@@ -9,7 +9,11 @@ import type {
 
 const TOKEN_KEY = "spotify_token";
 
-const useConverter = () => {
+interface useConverterProps {
+    setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+const useConverter = ({setIsLoading}: useConverterProps) => {
     const [inputUrl, setInputUrl] = useState("");
     const [finalUrl, setFinalUrl] = useState("");
     const [songDetails, setSongDetails] = useState<ISongDetails | null>(null);
@@ -41,11 +45,30 @@ const useConverter = () => {
                 message: "Failed to get Spotify token",
                 type: "error",
             });
+            setIsLoading(false);
         }
-    }, []);
+    }, [setIsLoading]);
 
     // Extract track ID from URL
-    const extractTrackId = useCallback((url: string) => {
+    const extractTrackId = useCallback(async (url: string) => {
+        if (url.includes("spotify.link")) {
+            try {
+                const res = await fetch(
+                    `${
+                        import.meta.env.VITE_BACKEND_ENDPOINT
+                    }/api/spotify/resolve?url=${encodeURIComponent(url)}`
+                );
+                const data = await res.json();
+                if (data.resolvedUrl) {
+                    url = data.resolvedUrl;
+                }
+            } catch (err) {
+                console.error("Failed to resolve shortened URL", err);
+                return null;
+            }
+        }
+
+        url = url.trim().split("?")[0]; // clean params
         const match = url.match(/track\/([a-zA-Z0-9]+)/);
         return match ? match[1] : null;
     }, []);
@@ -133,26 +156,29 @@ const useConverter = () => {
                     message: "Failed to fetch song details",
                     type: "error",
                 });
+            } finally {
+                setIsLoading(false);
             }
         },
-        [fetchAppleUrlBySong, getSpotifyToken, spotifyToken]
+        [fetchAppleUrlBySong, getSpotifyToken, spotifyToken, setIsLoading]
     );
 
     // Handle user action
     const handleFindSong = useCallback(async () => {
+        setIsLoading(true);
         setCurrentShownIndex(0);
         if (!inputUrl.trim()) return;
-
         const platform = inputUrl.includes("spotify") ? "spotify" : "apple";
 
         switch (platform) {
             case "spotify": {
-                const trackId = extractTrackId(inputUrl);
+                const trackId = await extractTrackId(inputUrl);
                 if (!trackId) {
                     setStatus({
                         message: "Invalid Spotify URL",
                         type: "error",
                     });
+                    setIsLoading(false);
                     return;
                 }
 
@@ -170,7 +196,14 @@ const useConverter = () => {
             default:
                 setStatus({ message: "Invalid platform", type: "error" });
         }
-    }, [extractTrackId, fetchTrackDetails, getSpotifyToken, inputUrl, spotifyToken]);
+    }, [
+        extractTrackId,
+        fetchTrackDetails,
+        getSpotifyToken,
+        inputUrl,
+        spotifyToken,
+        setIsLoading
+    ]);
 
     const handleCopy = () => {
         if (!finalUrl) return;
@@ -178,15 +211,25 @@ const useConverter = () => {
         toast.info("Link copied!");
     };
 
-    const handleKeyPress = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === "Enter") handleFindSong();
-    }, [handleFindSong]);
+    const handleKeyPress = useCallback(
+        (e: React.KeyboardEvent<HTMLInputElement>) => {
+            if (e.key === "Enter") handleFindSong();
+        },
+        [handleFindSong]
+    );
 
     const nextSongHandler = useCallback(() => {
-        setCurrentShownIndex((prev) => prev === foundResults.length - 1 ? 0 : prev + 1)
-        setFinalUrl(foundResults[currentShownIndex === foundResults.length - 1 ? 0 : currentShownIndex + 1].trackViewUrl);
-    },[setCurrentShownIndex, foundResults, currentShownIndex])
-
+        setCurrentShownIndex((prev) =>
+            prev === foundResults.length - 1 ? 0 : prev + 1
+        );
+        setFinalUrl(
+            foundResults[
+                currentShownIndex === foundResults.length - 1
+                    ? 0
+                    : currentShownIndex + 1
+            ].trackViewUrl
+        );
+    }, [setCurrentShownIndex, foundResults, currentShownIndex]);
 
     useEffect(() => {
         if (status) {
@@ -204,7 +247,7 @@ const useConverter = () => {
         songDetails,
         handleCopy,
         handleKeyPress,
-        nextSongHandler
+        nextSongHandler,
     };
 };
 

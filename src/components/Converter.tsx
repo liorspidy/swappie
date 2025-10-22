@@ -3,7 +3,11 @@ import copyIcon from "../assets/copy.svg";
 import shareIcon from "../assets/share.svg";
 import useConverter from "./useConverter";
 
-const Converter = () => {
+interface converterProps {
+    setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+const Converter = ({setIsLoading}: converterProps) => {
     const {
         inputUrl,
         setInputUrl,
@@ -12,8 +16,8 @@ const Converter = () => {
         songDetails,
         handleCopy,
         handleKeyPress,
-        nextSongHandler
-    } = useConverter();
+        nextSongHandler,
+    } = useConverter({setIsLoading});
 
     return (
         <div className="card">
