@@ -1,0 +1,78 @@
+#root {
+    max-width: 1028px;
+    margin: 0 auto;
+    padding: 2rem;
+    text-align: center;
+}
+
+.small {
+    display: inline-block;
+    margin-block-start: 2rem;
+}
+
+.titleContainer .icons {
+    display: grid;
+    grid-template-rows: repeat(3, clamp(60px, 10dvw, 100px));
+    row-gap: 1.8rem;
+    column-gap: 2.5rem;
+    align-items: center;
+    justify-content: center;
+    grid-template-areas:
+        "arrowOne  arrowOne   arrowOne"
+        "spotify   title      apple"
+        "arrowTwo  arrowTwo   arrowTwo";
+    margin-block-end: 5rem;
+    scale: 0.9;
+}
+
+.titleContainer h1 {
+    grid-area: title;
+}
+
+.titleContainer .icons .lottieArrow {
+    filter: invert(1);
+    object-fit: contain;
+    transform: scale(0.35) scaleY(1.6);
+}
+
+.titleContainer .icons .spotify {
+    grid-area: spotify;
+}
+
+.titleContainer .icons .apple {
+    grid-area: apple;
+}
+
+.titleContainer .icons .spotify,
+.titleContainer .icons .apple {
+    min-width: 60px;
+}
+
+.titleContainer #arrowOne {
+    grid-area: arrowOne;
+}
+
+.titleContainer #arrowTwo {
+    grid-area: arrowTwo;
+}
+
+.titleContainer .icons .lottieArrow.top {
+    rotate: -93deg;
+    display: grid;
+}
+
+.titleContainer .icons .lottieArrow.bottom {
+    rotate: 87deg;
+    display: grid;
+}
+
+@media screen and (max-width: 768px) {
+    .titleContainer .icons {
+        column-gap: 1rem;
+        row-gap: 1rem;
+    }
+
+    .titleContainer .icons .lottieArrow {
+        transform: scale(0.32) scaleY(1.6);
+    }
+}

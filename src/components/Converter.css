@@ -1,0 +1,35 @@
+.card {
+    border-radius: 1rem;
+    padding: 1rem;
+    background-color: blueviolet;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.finalResultContainer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-direction: column;
+}
+
+.finalResultContainer .finalRes {
+    flex: 1;
+    text-align: center;
+    margin-block-end: 1rem;
+}
+
+.copyBtn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.25rem;
+    height: 40px;
+}
+
+.copyIcon {
+    height: 30px;
+    width: 30px;
+}
