@@ -75,4 +75,8 @@
     .titleContainer .icons .lottieArrow {
         transform: scale(0.32) scaleY(1.6);
     }
+
+    .small {
+        max-width: 300px;
+    }
 }

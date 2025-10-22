@@ -102,4 +102,8 @@ p {
   h1 {
     font-size: 10dvw;
   }
+
+  input {
+    max-width: 300px;
+  }
 }
