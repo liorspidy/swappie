@@ -1,81 +1,84 @@
 import "./Converter.css";
 import copyIcon from "../assets/copy.svg";
-import { useEffect, useState } from "react";
-import { toast } from 'react-toastify';
-import type { ISongDetails, IStatuses } from "../interfaces/data.interface";
+import shareIcon from "../assets/share.svg";
+import useConverter from "./useConverter";
 
 const Converter = () => {
-    const [value, setValue] = useState<string>("");
-    const [finalRes, setFinalRes] = useState<string>("");
-    const [songDetails, setSongDetails] = useState<ISongDetails | null>(null);
-    const [processStatus, setProcessStatus] = useState<IStatuses | null>(null);
-
-    const findSong = () => {
-        findAppleSong();
-        // setFinalRes(value);
-        // setProcessStatus({
-        //     message: "your URL is ready!",
-        //     type: "success"
-        // })
-    };
-
-    const findAppleSong = async () => {
-        const oEmbedUrl = "https://open.spotify.com/oembed?url=" + value;
-        const res = await fetch(oEmbedUrl);
-        const data = await res.json();
-        setSongDetails({
-            title: data.title,
-            author: data.author_name,
-            year: data.year
-        })
-    }
-
-    const copyHandler = () => {
-        navigator.clipboard.writeText(finalRes);
-    };
-
-    const onKeyHandler = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === "Enter") {
-            findSong();
-        }
-    };
-
-    useEffect(() => {
-        if(processStatus) {
-            if(processStatus.type === "success") {
-                toast.success(processStatus.message)
-            } else if (processStatus.type === "error") {
-                toast.error(processStatus.message)
-            }
-            setProcessStatus(null)
-        }
-    },[processStatus])
+    const {
+        inputUrl,
+        setInputUrl,
+        finalUrl,
+        handleFindSong,
+        songDetails,
+        handleCopy,
+        handleKeyPress,
+        nextSongHandler
+    } = useConverter();
 
     return (
         <div className="card">
-            <input
-                type="text"
-                name="urlInput"
-                value={value}
-                onInput={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    setValue(e.target.value)
-                }
-                onKeyDown={onKeyHandler}
-            />
-            <button className="finderBtn" onClick={findSong}>
-                Find This Song
+                <input
+                    id="inputURL"
+                    type="text"
+                    placeholder="Paste Spotify URL..."
+                    value={inputUrl}
+                    onChange={(e) => setInputUrl(e.target.value)}
+                    onKeyDown={handleKeyPress}
+                />
+            <button className="finderBtn" onClick={handleFindSong}>
+                Find Song
             </button>
 
-            {finalRes && (
-                <div className="finalResultContainer">
-                    <a className="finalRes" href={finalRes} target="_blank">{finalRes}</a>
-                    <button className="copyBtn" onClick={copyHandler}>
-                        Copy
+            {songDetails && (
+                <div className="songDetails">
+                    {songDetails.cover && (
                         <img
-                            className="copyIcon"
-                            src={copyIcon}
-                            alt="copy button"
+                            src={songDetails.cover}
+                            alt="Song cover"
+                            className="cover"
                         />
+                    )}
+                    <div className="info">
+                        <h3>{songDetails.title}</h3>
+                        <p>{songDetails.artists}</p>
+                        <p>
+                            {songDetails.album} • {songDetails.year}
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {finalUrl && (
+                <div className="finalResultContainer">
+                    <a
+                        className="finalRes"
+                        href={finalUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                    >
+                        {finalUrl}
+                    </a>
+                    <div className="actionsContainer">
+                        <button className="actionBtn" onClick={handleCopy}>
+                            <span>Copy</span>
+                            <img
+                                className="actionIcon"
+                                src={copyIcon}
+                                alt="copy button"
+                            />
+                        </button>
+                        <button className="actionBtn">
+                            <span>Share</span>
+                            <img
+                                className="actionIcon"
+                                src={shareIcon}
+                                alt="share button"
+                            />
+                        </button>
+                    </div>
+
+                    <button className="wrongSongBtn" onClick={nextSongHandler}>
+                        <span>That's not it 😢</span>
                     </button>
                 </div>
             )}
