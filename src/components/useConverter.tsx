@@ -162,9 +162,10 @@ const useConverter = ({setIsLoading}: useConverterProps) => {
 
     // Handle user action
     const handleFindSong = useCallback(async () => {
-        setIsLoading(true);
-        setCurrentShownIndex(0);
         if (!inputUrl.trim()) return;
+        
+        setCurrentShownIndex(0);
+        setIsLoading(true);
         const platform = inputUrl.includes("spotify") ? "spotify" : "apple";
 
         switch (platform) {
