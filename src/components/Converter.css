@@ -40,6 +40,7 @@
     background: #2b2b2b6b;
     border-radius: 0.5rem;
     border: none;
+    word-break: break-all;
 }
 
 .actionsContainer {
@@ -65,4 +66,10 @@
 .wrongSongBtn {
     margin-block-start: 1rem;
     background-color: #0f0f0f;
+}
+
+@media screen and (max-width: 768px) {
+    .finalResultContainer .finalRes {
+        max-width: 300px;
+    }
 }
