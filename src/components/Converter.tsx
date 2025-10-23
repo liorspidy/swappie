@@ -1,13 +1,13 @@
 import "./Converter.css";
 import copyIcon from "../assets/copy.svg";
-import shareIcon from "../assets/share.svg";
-import useConverter from "./useConverter";
+// import shareIcon from "../assets/share.svg";
+import useConverter from "../hooks/useConverter";
 
 interface converterProps {
     setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const Converter = ({setIsLoading}: converterProps) => {
+const Converter = ({ setIsLoading }: converterProps) => {
     const {
         inputUrl,
         setInputUrl,
@@ -17,18 +17,19 @@ const Converter = ({setIsLoading}: converterProps) => {
         handleCopy,
         handleKeyPress,
         nextSongHandler,
-    } = useConverter({setIsLoading});
+        convertingTo,
+    } = useConverter({ setIsLoading });
 
     return (
         <div className="card">
-                <input
-                    id="inputURL"
-                    type="text"
-                    placeholder="Paste Spotify URL..."
-                    value={inputUrl}
-                    onChange={(e) => setInputUrl(e.target.value)}
-                    onKeyDown={handleKeyPress}
-                />
+            <input
+                id="inputURL"
+                type="text"
+                placeholder="Paste Spotify URL..."
+                value={inputUrl}
+                onChange={(e) => setInputUrl(e.target.value)}
+                onKeyDown={handleKeyPress}
+            />
             <button className="finderBtn" onClick={handleFindSong}>
                 Find Song
             </button>
@@ -71,19 +72,24 @@ const Converter = ({setIsLoading}: converterProps) => {
                                 alt="copy button"
                             />
                         </button>
-                        <button className="actionBtn">
+                        {/* <button className="actionBtn">
                             <span>Share</span>
                             <img
                                 className="actionIcon"
                                 src={shareIcon}
                                 alt="share button"
                             />
-                        </button>
+                        </button> */}
                     </div>
 
-                    <button className="wrongSongBtn" onClick={nextSongHandler}>
-                        <span>That's not it 😢</span>
-                    </button>
+                    {convertingTo === "spotify" && (
+                        <button
+                            className="wrongSongBtn"
+                            onClick={nextSongHandler}
+                        >
+                            <span>That's not it 😢</span>
+                        </button>
+                    )}
                 </div>
             )}
         </div>

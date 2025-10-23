@@ -9,7 +9,7 @@ export interface ISongDetails {
     year: string;
     album?: string;
     cover?: string;
-    spotifyUrl: string;
+    url: string;
 }
 
 export interface IArtist {

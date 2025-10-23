@@ -41,6 +41,7 @@
     border-radius: 0.5rem;
     border: none;
     word-break: break-all;
+    max-width: 580px;
 }
 
 .actionsContainer {

@@ -1,5 +1,9 @@
-import { useEffect, useState, useCallback } from "react";
-import { toast } from "react-toastify";
+import {
+    useCallback,
+    useEffect,
+    type Dispatch,
+    type SetStateAction,
+} from "react";
 import type {
     IAppleResponse,
     IArtist,
@@ -7,23 +11,27 @@ import type {
     IStatuses,
 } from "../interfaces/data.interface";
 
-const TOKEN_KEY = "spotify_token";
-
-interface useConverterProps {
-    setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
+interface useSpotifyProps {
+    spotifyToken: string;
+    setSpotifyToken: Dispatch<SetStateAction<string>>;
+    setStatus: Dispatch<SetStateAction<IStatuses | null>>;
+    setIsLoading: Dispatch<SetStateAction<boolean>>;
+    setFoundResults: Dispatch<SetStateAction<any>>;
+    currentShownIndex: number;
+    setSongDetails: Dispatch<SetStateAction<ISongDetails | null>>;
+    setFinalUrl: Dispatch<SetStateAction<string>>;
 }
 
-const useConverter = ({setIsLoading}: useConverterProps) => {
-    const [inputUrl, setInputUrl] = useState("");
-    const [finalUrl, setFinalUrl] = useState("");
-    const [songDetails, setSongDetails] = useState<ISongDetails | null>(null);
-    const [foundResults, setFoundResults] = useState<any>(null);
-    const [currentShownIndex, setCurrentShownIndex] = useState<number>(0);
-    const [spotifyToken, setSpotifyToken] = useState<string>(
-        () => sessionStorage.getItem(TOKEN_KEY) || ""
-    );
-    const [status, setStatus] = useState<IStatuses | null>(null);
-
+const useSpotify = ({
+    spotifyToken,
+    setSpotifyToken,
+    setStatus,
+    setIsLoading,
+    setFoundResults,
+    currentShownIndex,
+    setSongDetails,
+    setFinalUrl,
+}: useSpotifyProps) => {
     // Fetch a new token if needed
     const getSpotifyToken = useCallback(async () => {
         try {
@@ -33,7 +41,7 @@ const useConverter = ({setIsLoading}: useConverterProps) => {
             const data = await res.json();
             if (data.token) {
                 // Save to both state and sessionStorage
-                sessionStorage.setItem(TOKEN_KEY, data.token);
+                sessionStorage.setItem("spotify_token", data.token);
                 setSpotifyToken(data.token);
                 return data.token;
             } else {
@@ -47,13 +55,23 @@ const useConverter = ({setIsLoading}: useConverterProps) => {
             });
             setIsLoading(false);
         }
-    }, [setIsLoading]);
+    }, [setIsLoading, setSpotifyToken, setStatus]);
 
-    // Extract track ID from URL
-    const extractTrackId = useCallback(async (url: string) => {
+    useEffect(() => {
+        if (!spotifyToken) {
+            getSpotifyToken();
+        }
+    }, [spotifyToken, getSpotifyToken]);
+
+    // Extract track ID from URL for spotify
+    const extractSpotifyTrackId = useCallback(async (url: string) => {
         if (url.includes("spotify.link")) {
             try {
-                const res = await fetch(`${import.meta.env.VITE_BACKEND_ENDPOINT}/api/spotify/resolve?url=${encodeURIComponent(url)}`);
+                const res = await fetch(
+                    `${
+                        import.meta.env.VITE_BACKEND_ENDPOINT
+                    }/api/spotify/resolve?url=${encodeURIComponent(url)}`
+                );
                 const data = await res.json();
 
                 if (data.resolvedUrl) {
@@ -70,7 +88,7 @@ const useConverter = ({setIsLoading}: useConverterProps) => {
         return match ? match[1] : null;
     }, []);
 
-    const fetchAppleUrlBySong = useCallback(
+    const fetchAppleUrlBySongDetails = useCallback(
         async (artists: IArtist[], title: string) => {
             // Join all artist names for the search term
             const artistNames = artists.map((a) => a.name).join(" ");
@@ -103,11 +121,11 @@ const useConverter = ({setIsLoading}: useConverterProps) => {
                 appleUrl: found.trackViewUrl,
             };
         },
-        [currentShownIndex]
+        [currentShownIndex, setFoundResults]
     );
 
     // Fetch track details from Spotify API
-    const fetchTrackDetails = useCallback(
+    const fetchSpotifySongDetailsById = useCallback(
         async (trackId: string, token?: string) => {
             try {
                 const activeToken = token ?? spotifyToken;
@@ -121,7 +139,10 @@ const useConverter = ({setIsLoading}: useConverterProps) => {
                     if (trackRes.status === 401) {
                         const newToken = await getSpotifyToken();
                         if (newToken)
-                            return fetchTrackDetails(trackId, newToken);
+                            return fetchSpotifySongDetailsById(
+                                trackId,
+                                newToken
+                            );
                     }
                     throw new Error(`Spotify error ${trackRes.status}`);
                 }
@@ -135,18 +156,19 @@ const useConverter = ({setIsLoading}: useConverterProps) => {
                     year: track.album.release_date.split("-")[0],
                     album: track.album.name,
                     cover: track.album.images?.[0]?.url,
-                    spotifyUrl: track.external_urls.spotify,
+                    url: track.external_urls.spotify,
                 });
 
                 // fetches the apple's song url and keeps it in the state
-                fetchAppleUrlBySong(track.artists, track.name).then((res) => {
-                    setFinalUrl(res.appleUrl);
-                });
-
-                setStatus({
-                    message: "Song details found!",
-                    type: "success",
-                });
+                fetchAppleUrlBySongDetails(track.artists, track.name).then(
+                    (res) => {
+                        setFinalUrl(res.appleUrl);
+                        setStatus({
+                            message: "Apple Music URL found!",
+                            type: "success",
+                        });
+                    }
+                );
             } catch (err) {
                 console.error("Track fetch error:", err);
                 setStatus({
@@ -157,97 +179,22 @@ const useConverter = ({setIsLoading}: useConverterProps) => {
                 setIsLoading(false);
             }
         },
-        [fetchAppleUrlBySong, getSpotifyToken, spotifyToken, setIsLoading]
+        [
+            fetchAppleUrlBySongDetails,
+            getSpotifyToken,
+            spotifyToken,
+            setIsLoading,
+            setStatus,
+            setSongDetails,
+            setFinalUrl,
+        ]
     );
-
-    // Handle user action
-    const handleFindSong = useCallback(async () => {
-        if (!inputUrl.trim()) return;
-        
-        setCurrentShownIndex(0);
-        setIsLoading(true);
-        const platform = inputUrl.includes("spotify") ? "spotify" : "apple";
-
-        switch (platform) {
-            case "spotify": {
-                const trackId = await extractTrackId(inputUrl);
-
-                if (!trackId) {
-                    setStatus({
-                        message: "Invalid Spotify URL",
-                        type: "error",
-                    });
-                    setIsLoading(false);
-                    return;
-                }
-
-                if (!spotifyToken) {
-                    const token = await getSpotifyToken();
-                    if (token) fetchTrackDetails(trackId, token);
-                } else {
-                    fetchTrackDetails(trackId);
-                }
-                break;
-            }
-            case "apple":
-                // TODO: Apple flow
-                break;
-            default:
-                setStatus({ message: "Invalid platform", type: "error" });
-        }
-    }, [
-        extractTrackId,
-        fetchTrackDetails,
-        getSpotifyToken,
-        inputUrl,
-        spotifyToken,
-        setIsLoading
-    ]);
-
-    const handleCopy = () => {
-        if (!finalUrl) return;
-        navigator.clipboard.writeText(finalUrl);
-        toast.info("Link copied!");
-    };
-
-    const handleKeyPress = useCallback(
-        (e: React.KeyboardEvent<HTMLInputElement>) => {
-            if (e.key === "Enter") handleFindSong();
-        },
-        [handleFindSong]
-    );
-
-    const nextSongHandler = useCallback(() => {
-        setCurrentShownIndex((prev) =>
-            prev === foundResults.length - 1 ? 0 : prev + 1
-        );
-        setFinalUrl(
-            foundResults[
-                currentShownIndex === foundResults.length - 1
-                    ? 0
-                    : currentShownIndex + 1
-            ].trackViewUrl
-        );
-    }, [setCurrentShownIndex, foundResults, currentShownIndex]);
-
-    useEffect(() => {
-        if (status) {
-            if (status.type === "success") toast.success(status.message);
-            else toast.error(status.message);
-            setStatus(null);
-        }
-    }, [status]);
 
     return {
-        inputUrl,
-        setInputUrl,
-        finalUrl,
-        handleFindSong,
-        songDetails,
-        handleCopy,
-        handleKeyPress,
-        nextSongHandler,
+        getSpotifyToken,
+        extractSpotifyTrackId,
+        fetchSpotifySongDetailsById,
     };
 };
 
-export default useConverter;
+export default useSpotify;
