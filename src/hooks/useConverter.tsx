@@ -18,9 +18,7 @@ const useConverter = ({ setIsLoading }: useConverterProps) => {
     const [foundResults, setFoundResults] = useState<any>(null);
     const [currentShownIndex, setCurrentShownIndex] = useState<number>(0);
     const [convertingTo, setConvertingTo] = useState<"spotify" | "apple" | null>(null);
-    const [spotifyToken, setSpotifyToken] = useState<string>(
-        () => sessionStorage.getItem("spotify_token") || ""
-    );
+    const [spotifyToken, setSpotifyToken] = useState<string>("");
     const [status, setStatus] = useState<IStatuses | null>(null);
 
     // spotify hook

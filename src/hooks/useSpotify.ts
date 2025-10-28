@@ -40,8 +40,6 @@ const useSpotify = ({
             );
             const data = await res.json();
             if (data.token) {
-                // Save to both state and sessionStorage
-                sessionStorage.setItem("spotify_token", data.token);
                 setSpotifyToken(data.token);
                 return data.token;
             } else {
