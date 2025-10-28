@@ -48,6 +48,7 @@ const useConverter = ({ setIsLoading }: useConverterProps) => {
 
     // Handle user action
     const handleFindSong = useCallback(async () => {
+        setFinalUrl("")
         if (!inputUrl.trim()) return;
 
         setCurrentShownIndex(0);

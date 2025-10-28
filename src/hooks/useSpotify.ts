@@ -93,19 +93,34 @@ const useSpotify = ({
             .replace(/\s+/g, " ") // normalize spaces
             .trim()
             .toLowerCase();
-    },[]);
+    }, []);
 
     const fetchAppleUrlBySongDetails = useCallback(
         async (artists: IArtist[], title: string) => {
-            // Join all artist names for the search term
             const normalizedTitle = normalizeHebrew(title);
-            const normalizedArtistNames = artists.map((a) => normalizeHebrew(a.name)).join(" ");
-            const searchTerm = encodeURIComponent(`${normalizedArtistNames} ${normalizedTitle}`);
+            const normalizedArtistNames = artists
+                .map((a) => normalizeHebrew(a.name))
+                .join(" ");
 
-            const res = await fetch(
-                `https://itunes.apple.com/search?term=${searchTerm}&entity=song&limit=5`
+            // primary: artist + title
+            const primaryTerm = encodeURI(
+                `${normalizedArtistNames} ${normalizedTitle}`
             );
-            const data = await res.json();
+            // fallback: title only
+            const fallbackTerm = encodeURI(normalizedTitle);
+
+            let res = await fetch(
+                `${import.meta.env.VITE_BACKEND_ENDPOINT}/api/apple/search?term=${primaryTerm}`
+            );
+            let data = await res.json();
+
+            if (!data.results || data.results.length === 0) {
+                console.warn("[Apple Search] No result for artist+title, trying fallback title only");
+                res = await fetch(
+                    `${import.meta.env.VITE_BACKEND_ENDPOINT}/api/apple/search?term=${fallbackTerm}`
+                );
+                data = await res.json();
+            }
 
             if (!data.results || data.results.length === 0) {
                 throw new Error("Song not found on Apple Music");
@@ -113,15 +128,17 @@ const useSpotify = ({
 
             setFoundResults(data.results);
 
-            // Basic matching — can be improved with fuzzy matching
             const found =
                 data.results.find((r: IAppleResponse) => {
                     const resultArtist = r.artistName.toLowerCase();
                     const resultTitle = r.trackName.toLowerCase();
+                    // slightly looser matching
                     return (
                         artists.some((a) =>
                             resultArtist.includes(a.name.toLowerCase())
-                        ) && resultTitle.includes(title.toLowerCase())
+                        ) ||
+                        resultTitle.includes(title.toLowerCase()) ||
+                        title.toLowerCase().includes(resultTitle)
                     );
                 }) || data.results[currentShownIndex];
 
@@ -129,7 +146,7 @@ const useSpotify = ({
                 appleUrl: found.trackViewUrl,
             };
         },
-        [currentShownIndex, setFoundResults]
+        [currentShownIndex, setFoundResults, normalizeHebrew]
     );
 
     // Fetch track details from Spotify API
@@ -143,7 +160,6 @@ const useSpotify = ({
                 );
 
                 if (!trackRes.ok) {
-                    // Token might be expired — retry after fetching new one
                     if (trackRes.status === 401) {
                         const newToken = await getSpotifyToken();
                         if (newToken)
@@ -167,7 +183,7 @@ const useSpotify = ({
                     url: track.external_urls.spotify,
                 });
 
-                // fetches the apple's song url and keeps it in the state
+                // fetch Apple URL
                 fetchAppleUrlBySongDetails(track.artists, track.name).then(
                     (res) => {
                         setFinalUrl(res.appleUrl);
