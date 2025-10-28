@@ -86,11 +86,21 @@ const useSpotify = ({
         return match ? match[1] : null;
     }, []);
 
+    const normalizeHebrew = useCallback((str: string) => {
+        return str
+            .normalize("NFKC") // normalize Unicode
+            .replace(/\u05BE/g, "") // remove maqaf
+            .replace(/\s+/g, " ") // normalize spaces
+            .trim()
+            .toLowerCase();
+    },[]);
+
     const fetchAppleUrlBySongDetails = useCallback(
         async (artists: IArtist[], title: string) => {
             // Join all artist names for the search term
-            const artistNames = artists.map((a) => a.name).join(" ");
-            const searchTerm = encodeURIComponent(`${artistNames} ${title}`);
+            const normalizedTitle = normalizeHebrew(title);
+            const normalizedArtistNames = artists.map((a) => normalizeHebrew(a.name)).join(" ");
+            const searchTerm = encodeURIComponent(`${normalizedArtistNames} ${normalizedTitle}`);
 
             const res = await fetch(
                 `https://itunes.apple.com/search?term=${searchTerm}&entity=song&limit=5`
