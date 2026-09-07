@@ -34,7 +34,7 @@ const useApple = ({
 
     // finds the best-matching Spotify track for a given title/artist (via BE proxy)
     const fetchSpotifyUrlBySongDetails = useCallback(
-        async (artist: string, title: string) => {
+        async (artist: string, title: string, albumName: string) => {
             try {
                 const normalizedTitle = normalizeText(title);
                 const normalizedArtist = normalizeText(artist);
@@ -63,9 +63,10 @@ const useApple = ({
 
                 const found = pickBestMatch(
                     items,
-                    { title, artists: [artist] },
+                    { title, artists: [artist], album: albumName },
                     (r: ISpotifyItem) => r.name,
-                    (r: ISpotifyItem) => r.artists.map((a) => a.name).join(" ")
+                    (r: ISpotifyItem) => r.artists.map((a) => a.name).join(" "),
+                    (r: ISpotifyItem) => r.album?.name ?? ""
                 );
 
                 setFinalUrl(found.external_urls.spotify);
@@ -186,7 +187,8 @@ const useApple = ({
 
                     fetchSpotifyUrlBySongDetails(
                         songData.artistName,
-                        songData.trackName
+                        songData.trackName,
+                        songData.collectionName
                     );
                 }
             } catch (err) {

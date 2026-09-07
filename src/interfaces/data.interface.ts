@@ -17,6 +17,9 @@ export interface ISongDetails {
 export interface ISpotifyItem {
     name: string;
     artists: IArtist[];
+    album?: {
+        name: string;
+    };
     external_urls: {
         spotify: string;
     };

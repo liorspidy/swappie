@@ -38,7 +38,7 @@ const useSpotify = ({
     }, []);
 
     const fetchAppleUrlBySongDetails = useCallback(
-        async (artists: IArtist[], title: string) => {
+        async (artists: IArtist[], title: string, albumName: string) => {
             const normalizedTitle = normalizeText(title);
             const normalizedArtistNames = artists
                 .map((a) => normalizeText(a.name))
@@ -73,9 +73,10 @@ const useSpotify = ({
             const found =
                 pickBestMatch(
                     data.results,
-                    { title, artists: artists.map((a) => a.name) },
+                    { title, artists: artists.map((a) => a.name), album: albumName },
                     (r: IAppleResponse) => r.trackName,
-                    (r: IAppleResponse) => r.artistName
+                    (r: IAppleResponse) => r.artistName,
+                    (r: IAppleResponse) => r.collectionName
                 ) || data.results[currentShownIndex];
 
             return {
@@ -149,8 +150,9 @@ const useSpotify = ({
                     url: track.external_urls.spotify,
                 });
 
-                // fetch Apple URL
-                fetchAppleUrlBySongDetails(track.artists, track.name)
+                // fetch Apple URL (pass the album so pickBestMatch can find the same release,
+                // not just any release sharing the same title)
+                fetchAppleUrlBySongDetails(track.artists, track.name, track.album.name)
                     .then((res) => {
                         setFinalUrl(res.appleUrl);
                         setStatus({
