@@ -1,0 +1,82 @@
+:global(#root) {
+    max-width: 1028px;
+    margin: 0 auto;
+    padding: 2rem;
+    text-align: center;
+}
+
+.small {
+    display: inline-block;
+    margin-block-start: 2rem;
+
+    @media screen and (max-width: 768px) {
+        max-width: 300px;
+    }
+}
+
+.titleContainer {
+    .icons {
+        display: grid;
+        grid-template-rows: repeat(3, clamp(60px, 10dvw, 100px));
+        row-gap: 1.8rem;
+        column-gap: 2.5rem;
+        align-items: center;
+        justify-content: center;
+        grid-template-areas:
+            "arrowOne  arrowOne   arrowOne"
+            "spotify   title      apple"
+            "arrowTwo  arrowTwo   arrowTwo";
+        margin-block-end: 5rem;
+        scale: 0.9;
+
+        .lottieArrow {
+            filter: invert(1);
+            object-fit: contain;
+            transform: scale(0.35) scaleY(1.6);
+
+            &.top {
+                rotate: -93deg;
+                display: grid;
+            }
+
+            &.bottom {
+                rotate: 87deg;
+                display: grid;
+            }
+        }
+
+        .spotify {
+            grid-area: spotify;
+        }
+
+        .apple {
+            grid-area: apple;
+        }
+
+        .spotify,
+        .apple {
+            min-width: 60px;
+        }
+
+        @media screen and (max-width: 768px) {
+            column-gap: 1rem;
+            row-gap: 1rem;
+
+            .lottieArrow {
+                transform: scale(0.32) scaleY(1.6);
+            }
+        }
+    }
+
+    h1 {
+        grid-area: title;
+    }
+
+    :global(#arrowOne) {
+        grid-area: arrowOne;
+    }
+
+    :global(#arrowTwo) {
+        grid-area: arrowTwo;
+    }
+}

@@ -1,19 +1,13 @@
-import {
-    useCallback,
-    useEffect,
-    type Dispatch,
-    type SetStateAction,
-} from "react";
+import { useCallback, type Dispatch, type SetStateAction } from "react";
 import type {
     IAppleResponse,
     IArtist,
     ISongDetails,
     IStatuses,
 } from "../interfaces/data.interface";
+import { normalizeText, pickBestMatch } from "../utils/textMatch";
 
 interface useSpotifyProps {
-    spotifyToken: string;
-    setSpotifyToken: Dispatch<SetStateAction<string>>;
     setStatus: Dispatch<SetStateAction<IStatuses | null>>;
     setIsLoading: Dispatch<SetStateAction<boolean>>;
     setFoundResults: Dispatch<SetStateAction<any>>;
@@ -23,8 +17,6 @@ interface useSpotifyProps {
 }
 
 const useSpotify = ({
-    spotifyToken,
-    setSpotifyToken,
     setStatus,
     setIsLoading,
     setFoundResults,
@@ -32,37 +24,8 @@ const useSpotify = ({
     setSongDetails,
     setFinalUrl,
 }: useSpotifyProps) => {
-    // Fetch a new token if needed
-    const getSpotifyToken = useCallback(async () => {
-        try {
-            const res = await fetch(
-                `${import.meta.env.VITE_BACKEND_ENDPOINT}/api/spotify/token`
-            );
-            const data = await res.json();
-            if (data.token) {
-                setSpotifyToken(data.token);
-                return data.token;
-            } else {
-                throw new Error("Missing token in response");
-            }
-        } catch (err) {
-            console.error("Token error:", err);
-            setStatus({
-                message: "Failed to get Spotify token",
-                type: "error",
-            });
-            setIsLoading(false);
-        }
-    }, [setIsLoading, setSpotifyToken, setStatus]);
-
-    useEffect(() => {
-        if (!spotifyToken) {
-            getSpotifyToken();
-        }
-    }, [spotifyToken, getSpotifyToken]);
-
-    // Extract track ID from URL for spotify
-    const extractSpotifyTrackId = useCallback(async (url: string) => {
+    // Extract track/album ID from a Spotify URL
+    const extractSpotifyId = useCallback(async (url: string) => {
         if (url.includes("spotify.link")) {
             try {
                 const res = await fetch(
@@ -74,6 +37,8 @@ const useSpotify = ({
 
                 if (data.resolvedUrl) {
                     url = data.resolvedUrl;
+                } else {
+                    return null;
                 }
             } catch (err) {
                 console.error("Failed to resolve shortened URL", err);
@@ -82,24 +47,21 @@ const useSpotify = ({
         }
 
         url = url.trim().split("?")[0]; // clean params
-        const match = url.match(/track\/([a-zA-Z0-9]+)/);
-        return match ? match[1] : null;
-    }, []);
 
-    const normalizeHebrew = useCallback((str: string) => {
-        return str
-            .normalize("NFKC") // normalize Unicode
-            .replace(/\u05BE/g, "") // remove maqaf
-            .replace(/\s+/g, " ") // normalize spaces
-            .trim()
-            .toLowerCase();
+        const trackMatch = url.match(/track\/([a-zA-Z0-9]+)/);
+        if (trackMatch) return { id: trackMatch[1], isAlbum: false };
+
+        const albumMatch = url.match(/album\/([a-zA-Z0-9]+)/);
+        if (albumMatch) return { id: albumMatch[1], isAlbum: true };
+
+        return null;
     }, []);
 
     const fetchAppleUrlBySongDetails = useCallback(
         async (artists: IArtist[], title: string) => {
-            const normalizedTitle = normalizeHebrew(title);
+            const normalizedTitle = normalizeText(title);
             const normalizedArtistNames = artists
-                .map((a) => normalizeHebrew(a.name))
+                .map((a) => normalizeText(a.name))
                 .join(" ");
 
             // primary: artist + title
@@ -110,14 +72,14 @@ const useSpotify = ({
             const fallbackTerm = encodeURI(normalizedTitle);
 
             let res = await fetch(
-                `${import.meta.env.VITE_BACKEND_ENDPOINT}/api/apple/search?term=${primaryTerm}`
+                `${import.meta.env.VITE_BACKEND_ENDPOINT}/api/apple/search?entity=song&term=${primaryTerm}`
             );
             let data = await res.json();
 
             if (!data.results || data.results.length === 0) {
                 console.warn("[Apple Search] No result for artist+title, trying fallback title only");
                 res = await fetch(
-                    `${import.meta.env.VITE_BACKEND_ENDPOINT}/api/apple/search?term=${fallbackTerm}`
+                    `${import.meta.env.VITE_BACKEND_ENDPOINT}/api/apple/search?entity=song&term=${fallbackTerm}`
                 );
                 data = await res.json();
             }
@@ -129,45 +91,69 @@ const useSpotify = ({
             setFoundResults(data.results);
 
             const found =
-                data.results.find((r: IAppleResponse) => {
-                    const resultArtist = r.artistName.toLowerCase();
-                    const resultTitle = r.trackName.toLowerCase();
-                    // slightly looser matching
-                    return (
-                        artists.some((a) =>
-                            resultArtist.includes(a.name.toLowerCase())
-                        ) ||
-                        resultTitle.includes(title.toLowerCase()) ||
-                        title.toLowerCase().includes(resultTitle)
-                    );
-                }) || data.results[currentShownIndex];
+                pickBestMatch(
+                    data.results,
+                    { title, artists: artists.map((a) => a.name) },
+                    (r: IAppleResponse) => r.trackName,
+                    (r: IAppleResponse) => r.artistName
+                ) || data.results[currentShownIndex];
 
             return {
                 appleUrl: found.trackViewUrl,
             };
         },
-        [currentShownIndex, setFoundResults, normalizeHebrew]
+        [currentShownIndex, setFoundResults]
     );
 
-    // Fetch track details from Spotify API
+    const fetchAppleAlbumUrlByDetails = useCallback(
+        async (artists: IArtist[], albumName: string) => {
+            const normalizedAlbum = normalizeText(albumName);
+            const normalizedArtistNames = artists
+                .map((a) => normalizeText(a.name))
+                .join(" ");
+
+            const primaryTerm = encodeURI(
+                `${normalizedArtistNames} ${normalizedAlbum}`
+            );
+            const fallbackTerm = encodeURI(normalizedAlbum);
+
+            let res = await fetch(
+                `${import.meta.env.VITE_BACKEND_ENDPOINT}/api/apple/search?entity=album&term=${primaryTerm}`
+            );
+            let data = await res.json();
+
+            if (!data.results || data.results.length === 0) {
+                res = await fetch(
+                    `${import.meta.env.VITE_BACKEND_ENDPOINT}/api/apple/search?entity=album&term=${fallbackTerm}`
+                );
+                data = await res.json();
+            }
+
+            if (!data.results || data.results.length === 0) {
+                throw new Error("Album not found on Apple Music");
+            }
+
+            const found = pickBestMatch(
+                data.results,
+                { title: albumName, artists: artists.map((a) => a.name) },
+                (r: IAppleResponse) => r.collectionName,
+                (r: IAppleResponse) => r.artistName
+            );
+
+            return { appleUrl: found.collectionViewUrl };
+        },
+        []
+    );
+
+    // Fetch track details from Spotify (via BE proxy — BE holds the Spotify token)
     const fetchSpotifySongDetailsById = useCallback(
-        async (trackId: string, token?: string) => {
+        async (trackId: string) => {
             try {
-                const activeToken = token ?? spotifyToken;
                 const trackRes = await fetch(
-                    `https://api.spotify.com/v1/tracks/${trackId}`,
-                    { headers: { Authorization: `Bearer ${activeToken}` } }
+                    `${import.meta.env.VITE_BACKEND_ENDPOINT}/api/spotify/track/${trackId}`
                 );
 
                 if (!trackRes.ok) {
-                    if (trackRes.status === 401) {
-                        const newToken = await getSpotifyToken();
-                        if (newToken)
-                            return fetchSpotifySongDetailsById(
-                                trackId,
-                                newToken
-                            );
-                    }
                     throw new Error(`Spotify error ${trackRes.status}`);
                 }
 
@@ -205,8 +191,58 @@ const useSpotify = ({
         },
         [
             fetchAppleUrlBySongDetails,
-            getSpotifyToken,
-            spotifyToken,
+            setIsLoading,
+            setStatus,
+            setSongDetails,
+            setFinalUrl,
+        ]
+    );
+
+    // Fetch album details from Spotify (via BE proxy — BE holds the Spotify token)
+    const fetchSpotifyAlbumDetailsById = useCallback(
+        async (albumId: string) => {
+            try {
+                const albumRes = await fetch(
+                    `${import.meta.env.VITE_BACKEND_ENDPOINT}/api/spotify/album/${albumId}`
+                );
+
+                if (!albumRes.ok) {
+                    throw new Error(`Spotify error ${albumRes.status}`);
+                }
+
+                const album = await albumRes.json();
+                setSongDetails({
+                    title: album.name,
+                    artists: album.artists
+                        .map((a: IArtist) => a.name)
+                        .join(", "),
+                    year: album.release_date.split("-")[0],
+                    cover: album.images?.[0]?.url,
+                    url: album.external_urls.spotify,
+                    isAlbum: true,
+                });
+
+                fetchAppleAlbumUrlByDetails(album.artists, album.name).then(
+                    (res) => {
+                        setFinalUrl(res.appleUrl);
+                        setStatus({
+                            message: "Apple Music album found!",
+                            type: "success",
+                        });
+                    }
+                );
+            } catch (err) {
+                console.error("Album fetch error:", err);
+                setStatus({
+                    message: "Failed to fetch album details",
+                    type: "error",
+                });
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        [
+            fetchAppleAlbumUrlByDetails,
             setIsLoading,
             setStatus,
             setSongDetails,
@@ -215,9 +251,9 @@ const useSpotify = ({
     );
 
     return {
-        getSpotifyToken,
-        extractSpotifyTrackId,
+        extractSpotifyId,
         fetchSpotifySongDetailsById,
+        fetchSpotifyAlbumDetailsById,
     };
 };
 

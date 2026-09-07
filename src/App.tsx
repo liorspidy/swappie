@@ -1,8 +1,7 @@
-import "./App.css";
+import styles from "./App.module.scss";
 import Converter from "./components/Converter";
 import spotifyIcon from "./assets/spotify.svg";
 import appleMusicIcon from "./assets/apple-music.svg";
-import { Slide, ToastContainer } from "react-toastify";
 import Lottie from "lottie-react";
 import arrowLottie from "./assets/arrow.json";
 import { useState } from "react";
@@ -14,27 +13,27 @@ function App() {
     return (
         <>
             {isLoading && <Loader />}
-            <div className="titleContainer">
-                <div className="icons">
+            <div className={styles.titleContainer}>
+                <div className={styles.icons}>
                     <Lottie
-                        className="lottieArrow top"
+                        className={`${styles.lottieArrow} ${styles.top}`}
                         id="arrowOne"
                         animationData={arrowLottie}
                         loop={true}
                     />
                     <img
-                        className="icon spotify"
+                        className={`${styles.icon} ${styles.spotify}`}
                         src={spotifyIcon}
                         alt="spotify icon"
                     />
                     <h1>Swappie</h1>
                     <img
-                        className="icon apple"
+                        className={`${styles.icon} ${styles.apple}`}
                         src={appleMusicIcon}
                         alt="apple music icon"
                     />
                     <Lottie
-                        className="lottieArrow bottom"
+                        className={`${styles.lottieArrow} ${styles.bottom}`}
                         id="arrowTwo"
                         animationData={arrowLottie}
                         loop={true}
@@ -47,17 +46,8 @@ function App() {
             </p>
 
             <Converter setIsLoading={setIsLoading}/>
-            <ToastContainer
-                position="top-center"
-                autoClose={1000}
-                hideProgressBar={true}
-                newestOnTop={true}
-                closeOnClick
-                theme="light"
-                transition={Slide}
-            />
 
-            <small className="small">
+            <small className={styles.small}>
               This app is not affiliated with or endorsed by Spotify or Apple Music. 
               <br/>
               Created by Lior Fridman 2025.

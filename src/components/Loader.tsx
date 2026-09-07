@@ -1,9 +1,9 @@
-import "./Loader.css";
+import styles from "./Loader.module.scss";
 
 const Loader = () => {
   return (
-    <div className="backdrop">
-        <div className='loader'></div>
+    <div className={styles.backdrop}>
+        <div className={styles.loader}></div>
     </div>
   )
 }

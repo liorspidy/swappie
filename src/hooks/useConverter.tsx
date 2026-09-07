@@ -1,5 +1,4 @@
 import { useEffect, useState, useCallback } from "react";
-import { toast } from "react-toastify";
 import type {
     ISongDetails,
     IStatuses,
@@ -18,17 +17,14 @@ const useConverter = ({ setIsLoading }: useConverterProps) => {
     const [foundResults, setFoundResults] = useState<any>(null);
     const [currentShownIndex, setCurrentShownIndex] = useState<number>(0);
     const [convertingTo, setConvertingTo] = useState<"spotify" | "apple" | null>(null);
-    const [spotifyToken, setSpotifyToken] = useState<string>("");
     const [status, setStatus] = useState<IStatuses | null>(null);
 
     // spotify hook
     const {
-        getSpotifyToken,
-        extractSpotifyTrackId,
+        extractSpotifyId,
         fetchSpotifySongDetailsById,
+        fetchSpotifyAlbumDetailsById,
     } = useSpotify({
-        spotifyToken,
-        setSpotifyToken,
         setStatus,
         setIsLoading,
         setFoundResults,
@@ -43,12 +39,12 @@ const useConverter = ({ setIsLoading }: useConverterProps) => {
         setStatus,
         setIsLoading,
         setSongDetails,
-        spotifyToken,
     });
 
     // Handle user action
     const handleFindSong = useCallback(async () => {
-        setFinalUrl("")
+        setFinalUrl("");
+        setFoundResults(null);
         if (!inputUrl.trim()) return;
 
         setCurrentShownIndex(0);
@@ -58,9 +54,9 @@ const useConverter = ({ setIsLoading }: useConverterProps) => {
 
         switch (platform) {
             case "spotify": {
-                const trackId = await extractSpotifyTrackId(inputUrl);
+                const extracted = await extractSpotifyId(inputUrl);
 
-                if (!trackId) {
+                if (!extracted) {
                     setStatus({
                         message: "Invalid Spotify URL",
                         type: "error",
@@ -69,12 +65,11 @@ const useConverter = ({ setIsLoading }: useConverterProps) => {
                     return;
                 }
 
-                if (!spotifyToken) {
-                    const token = await getSpotifyToken();
-                    if (token) fetchSpotifySongDetailsById(trackId, token);
-                } else {
-                    fetchSpotifySongDetailsById(trackId);
-                }
+                const fetchDetails = extracted.isAlbum
+                    ? fetchSpotifyAlbumDetailsById
+                    : fetchSpotifySongDetailsById;
+
+                fetchDetails(extracted.id);
                 break;
             }
             case "apple": {
@@ -95,20 +90,27 @@ const useConverter = ({ setIsLoading }: useConverterProps) => {
                 setStatus({ message: "Invalid platform", type: "error" });
         }
     }, [
-        extractSpotifyTrackId,
+        extractSpotifyId,
         extractAppleTrackId,
         fetchSpotifySongDetailsById,
+        fetchSpotifyAlbumDetailsById,
         fetchAppleSongDetailsById,
-        getSpotifyToken,
         inputUrl,
-        spotifyToken,
         setIsLoading,
     ]);
+
+    const clearInput = useCallback(() => {
+        setInputUrl("");
+        setFinalUrl("");
+        setSongDetails(null);
+        setFoundResults(null);
+        setConvertingTo(null);
+    }, []);
 
     const handleCopy = () => {
         if (!finalUrl) return;
         navigator.clipboard.writeText(finalUrl);
-        toast.info("Link copied!");
+        setStatus({ message: "Link copied!", type: "success" });
     };
 
     const handleKeyPress = useCallback(
@@ -119,6 +121,7 @@ const useConverter = ({ setIsLoading }: useConverterProps) => {
     );
 
     const nextSongHandler = useCallback(() => {
+        if (!foundResults) return;
         setCurrentShownIndex((prev) =>
             prev === foundResults.length - 1 ? 0 : prev + 1
         );
@@ -131,12 +134,11 @@ const useConverter = ({ setIsLoading }: useConverterProps) => {
         );
     }, [setCurrentShownIndex, foundResults, currentShownIndex]);
 
+    // single status slot: a new one replaces the last instead of stacking
     useEffect(() => {
-        if (status) {
-            if (status.type === "success") toast.success(status.message);
-            else toast.error(status.message);
-            setStatus(null);
-        }
+        if (!status) return;
+        const timer = setTimeout(() => setStatus(null), 2500);
+        return () => clearTimeout(timer);
     }, [status]);
 
     return {
@@ -148,7 +150,10 @@ const useConverter = ({ setIsLoading }: useConverterProps) => {
         handleCopy,
         handleKeyPress,
         nextSongHandler,
-        convertingTo
+        convertingTo,
+        clearInput,
+        foundResults,
+        status,
     };
 };
 

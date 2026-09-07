@@ -5,11 +5,21 @@ export interface IStatuses {
 
 export interface ISongDetails {
     title: string;
-    artists: string[];
+    artists: string;
     year: string;
     album?: string;
     cover?: string;
     url: string;
+    isAlbum?: boolean;
+}
+
+// shape shared by Spotify track and album search results
+export interface ISpotifyItem {
+    name: string;
+    artists: IArtist[];
+    external_urls: {
+        spotify: string;
+    };
 }
 
 export interface IArtist {
