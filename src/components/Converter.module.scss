@@ -32,6 +32,8 @@
     background: none;
     border: none;
     padding: 0.25rem;
+    min-width: 44px;
+    min-height: 44px;
     line-height: 1;
     color: white;
     cursor: pointer;
@@ -92,7 +94,7 @@
         justify-content: center;
         align-items: center;
         gap: 0.25rem;
-        height: 40px;
+        height: 44px;
     }
 
     .actionIcon {

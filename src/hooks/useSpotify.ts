@@ -150,15 +150,21 @@ const useSpotify = ({
                 });
 
                 // fetch Apple URL
-                fetchAppleUrlBySongDetails(track.artists, track.name).then(
-                    (res) => {
+                fetchAppleUrlBySongDetails(track.artists, track.name)
+                    .then((res) => {
                         setFinalUrl(res.appleUrl);
                         setStatus({
                             message: "Apple Music URL found!",
                             type: "success",
                         });
-                    }
-                );
+                    })
+                    .catch((err) => {
+                        console.error("Apple lookup error:", err);
+                        setStatus({
+                            message: "Failed to fetch song details",
+                            type: "error",
+                        });
+                    });
             } catch (err) {
                 console.error("Track fetch error:", err);
                 setStatus({
@@ -202,15 +208,21 @@ const useSpotify = ({
                     isAlbum: true,
                 });
 
-                fetchAppleAlbumUrlByDetails(album.artists, album.name).then(
-                    (res) => {
+                fetchAppleAlbumUrlByDetails(album.artists, album.name)
+                    .then((res) => {
                         setFinalUrl(res.appleUrl);
                         setStatus({
                             message: "Apple Music album found!",
                             type: "success",
                         });
-                    }
-                );
+                    })
+                    .catch((err) => {
+                        console.error("Apple album lookup error:", err);
+                        setStatus({
+                            message: "Failed to fetch album details",
+                            type: "error",
+                        });
+                    });
             } catch (err) {
                 console.error("Album fetch error:", err);
                 setStatus({

@@ -48,7 +48,7 @@ const Converter = ({ setIsLoading }: converterProps) => {
                 </button>
             </div>
             <button className={styles.finderBtn} onClick={handleFindSong}>
-                Find Song
+                Find It
             </button>
 
             {songDetails && (

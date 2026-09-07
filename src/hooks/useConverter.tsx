@@ -45,6 +45,7 @@ const useConverter = ({ setIsLoading }: useConverterProps) => {
     const handleFindSong = useCallback(async () => {
         setFinalUrl("");
         setFoundResults(null);
+        setSongDetails(null);
         if (!inputUrl.trim()) return;
 
         setCurrentShownIndex(0);
