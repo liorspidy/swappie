@@ -24,28 +24,8 @@ const useSpotify = ({
     setSongDetails,
     setFinalUrl,
 }: useSpotifyProps) => {
-    // Extract track/album ID from a Spotify URL
+    // Extract track/album ID from a Spotify URL (canonical open.spotify.com only)
     const extractSpotifyId = useCallback(async (url: string) => {
-        if (url.includes("spotify.link")) {
-            try {
-                const res = await fetch(
-                    `${
-                        import.meta.env.VITE_BACKEND_ENDPOINT
-                    }/api/spotify/resolve?url=${encodeURIComponent(url)}`
-                );
-                const data = await res.json();
-
-                if (data.resolvedUrl) {
-                    url = data.resolvedUrl;
-                } else {
-                    return null;
-                }
-            } catch (err) {
-                console.error("Failed to resolve shortened URL", err);
-                return null;
-            }
-        }
-
         url = url.trim().split("?")[0]; // clean params
 
         const trackMatch = url.match(/track\/([a-zA-Z0-9]+)/);
